@@ -1,0 +1,65 @@
+{
+  "name": "feathers-airtable",
+  "description": "A wrapper for the feathers API",
+  "version": "0.0.0",
+  "homepage": "https://github.com/jonascript/feathers-airtable",
+  "main": "lib/",
+  "keywords": [
+    "feathers",
+    "feathers-plugin"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonascript/feathers-airtable.git"
+  },
+  "author": {
+    "name": "Feathers contributors",
+    "email": "hello@feathersjs.com",
+    "url": "https://feathersjs.com"
+  },
+  "contributors": [],
+  "bugs": {
+    "url": "https://github.com/jonascript/feathers-airtable/issues"
+  },
+  "engines": {
+    "node": ">= 6.0.0"
+  },
+  "scripts": {
+    "publish": "git push origin --tags && npm run changelog && git push origin",
+    "release:pre": "npm version prerelease && npm publish --tag pre",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish",
+    "babel": "rm -rf lib && mkdir lib && babel src/index.js -o lib/index.js",
+    "changelog": "github_changelog_generator && git add CHANGELOG.md && git commit -am \"Updating changelog\"",
+    "lint": "semistandard lib/*.js lib/**/*.js test/*.js test/**/*.js --fix",
+    "test": "jest --coverage"
+  },
+  "semistandard": {
+    "env": [
+      "node"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+    "@babel/preset-env": "7.9.5",
+    "@feathersjs/express": "4.5.3",
+    "@feathersjs/feathers": "4.5.3",
+    "airtable": "0.8.1",
+    "jest": "25.4.0"
+  },
+  "devDependencies": {
+    "babel-cli": "6.26.0",
+    "chai": "3.5.0",
+    "dotenv": "8.2.0",
+    "istanbul": "1.1.0-alpha.1",
+    "mocha": "7.1.1",
+    "semistandard": "14.2.0"
+  }
+}
