@@ -9,11 +9,18 @@ const TEST_TABLE_NAME = process.env.TEST_TABLE_NAME;
 const TEST_BASE_ID = process.env.TEST_BASE_ID;
 const ITEM_NAME = "Unit Test Item";
 
-jest.setTimeout(30000);
+jest.setTimeout(5000);
 const app = express(feathers());
 
 describe("Airtable service", () => {
+  let i = 1;
   let mockRecord, service;
+  const mockData = {
+    fields: {
+      Name: ITEM_NAME,
+      Notes: `This is a note.`,
+    },
+  };
 
   beforeAll((done) => {
     const options = {
@@ -26,15 +33,14 @@ describe("Airtable service", () => {
 
     service = app.service("airtable");
 
-    const mockData = {
-      fields: {
-        Name: ITEM_NAME,
-        Notes: "This is a note.",
-      },
-    };
-
     service.create(mockData).then((output) => {
       mockRecord = output;
+      done();
+    });
+  });
+
+  afterAll((done) => {
+    service.remove(mockRecord.id).then((output) => {
       done();
     });
   });
@@ -44,34 +50,149 @@ describe("Airtable service", () => {
     done();
   });
 
-  it("can find a record", (done) => {
-    service
-      .find({
-        tableName: TEST_TABLE_NAME,
-        baseId: TEST_BASE_ID,
-        filterByFormula: `{Name} = '${ITEM_NAME}'`,
-      })
-      .then((records) => {
+  describe("find", () => {
+    //   find
+    //     ✓ returns all items
+    //     ✓ filters results by a single parameter
+    //     ✓ filters results by multiple parameters
+    //     - can handle complex nested special queries
+    //     special filters
+    //       ✓ can $sort
+    //       ✓ can $limit
+    //       ✓ can $skip
+    //       ✓ can $select
+    //       ✓ can $or
+    //       - can $not
+    //       ✓ can $in
+    //       ✓ can $nin
+    //       ✓ can $lt
+    //       ✓ can $lte
+    //       ✓ can $gt
+    //       ✓ can $gte
+    //       ✓ can $ne
+    //       - can $populate
+    it("returns all items", (done) => {
+      service.find({}).then((records) => {
         for (let record of records) {
           expect(record).toBeTruthy();
-          expect(record.get("Name")).toBe(ITEM_NAME);
+          expect(record.get("Name")).toBeTruthy();
         }
         done();
       });
+    });
+
+    it("filters results by a single parameter", (done) => {
+      var params = { query: { fields: { Notes: `This is a note.` } } };
+
+      service
+        .find(params)
+        .then((data) => {
+          expect(Array.isArray(data)).toBe(true);
+          expect(data.length).toBe(1);
+          expect(data.length > 0).toBe(true);
+          expect(data[0].get("Name")).toEqual(ITEM_NAME);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe("remove", () => {
+    let testRecord, testRecordIds;
+
+    beforeEach((done) => {
+      const mockData = {
+        fields: {
+          Name: ITEM_NAME + " Remove",
+          Notes: "This is a note.",
+        },
+      };
+      service.create(mockData).then((record) => {
+        testRecord = record;
+        testRecordIds = [record.id];
+        done();
+      });
+    });
+
+    it("deletes an existing instance and returns the deleted instance", (done) => {
+      service.remove(testRecord.id).then((output) => {
+        expect(output.id).toBe(testRecord.id);
+        done();
+      });
+    });
+
+    // it("deletes multiple instances", (done) => {
+    //   service.create(mockData).then((record) => {
+    //     testRecordIds.push(record.id);
+    //     service
+    //       .remove(null, {
+    //         query: {
+    //           id: {
+    //             $in: testRecordIds,
+    //           },
+    //         },
+    //       })
+    //       .then((output) => {
+    //         expect(output.id).toBe(testRecord.id);
+    //         done();
+    //       });
+    //   });
+    // });
+  });
+
+  describe("extend", () => {
+    let testRecord;
+    const mockData = {
+      fields: {
+        Name: ITEM_NAME,
+        Notes: "This is a note.",
+      },
+    };
+    it("extends and uses extended method", (done) => {
+      let now = new Date().getTime();
+      let extended = service.extend({
+        create(data) {
+          data.fields.Name += " Extend " + now;
+          return this._super.apply(this, arguments);
+        },
+      });
+
+      extended.create(mockData).then((record) => {
+        testRecord = record;
+        expect(record.get("Name")).toEqual("Unit Test Item Extend " + now);
+        done();
+      });
+    });
+
+    afterEach((done) => {
+      service.remove(testRecord.id).then((record) => {
+        done();
+      });
+    });
   });
 
   describe("create", () => {
+    let testIds = [];
+
+    afterEach((done) => {
+      for (let x = 0; x < testIds.length; x++) {
+        service.remove(testIds[x]);
+      }
+
+      done();
+    });
     it("creates a single new instance and returns the created instance", (done) => {
       service
         .create({
           fields: {
             Name: ITEM_NAME,
-            Notes: "This is a note.",
+            Notes: "This is a note create.",
           },
         })
         .then((output) => {
-          expect(mockRecord).toBeTruthy();
-          expect(mockRecord.get("Name")).toBe(ITEM_NAME);
+          expect(output).toBeTruthy();
+          expect(output.get("Name")).toBe(ITEM_NAME);
+          testIds.push(output.id);
           done();
         });
     });
@@ -82,13 +203,13 @@ describe("Airtable service", () => {
           {
             fields: {
               Name: ITEM_NAME,
-              Notes: "This is a note 1.",
+              Notes: "This is a note create 1.",
             },
           },
           {
             fields: {
               Name: ITEM_NAME,
-              Notes: "This is a note 2.",
+              Notes: "This is a note create 2.",
             },
           },
         ])
@@ -96,9 +217,12 @@ describe("Airtable service", () => {
           expect(output).toBeTruthy();
           expect(output.length).toEqual(2);
           expect(output[0].get("Name")).toBe(ITEM_NAME);
-          expect(output[0].get("Notes")).toBe("This is a note 1.");
+          expect(output[0].get("Notes")).toBe("This is a note create 1.");
           expect(output[1].get("Name")).toBe(ITEM_NAME);
-          expect(output[1].get("Notes")).toBe("This is a note 2.");
+          expect(output[1].get("Notes")).toBe("This is a note create 2.");
+
+          testIds = output.map((record) => record.id);
+
           done();
         });
     });
@@ -132,35 +256,24 @@ describe("Airtable service", () => {
     });
   });
 
-  it("can update a record", (done) => {
-    // update
-    // - replaces an existing instance
-    // - returns NotFound error for non-existing id
-    const mockData = {
-      id: mockRecord.id,
-      fields: { Name: ITEM_NAME },
-    };
-    service.update(null, [mockData]).then((output) => {
-      expect(output).toBeTruthy();
-      expect(output[0].get("Name")).toBe(ITEM_NAME);
-      done();
-    });
-  });
-
-  it("can delete a record", (done) => {
-    service.remove(mockRecord.id).then((output) => {
-      expect(output).toBe(mockRecord.id);
-      done();
-    });
-  });
+  // it("can update a record", (done) => {
+  //   // update
+  //   // - replaces an existing instance
+  //   // - returns NotFound error for non-existing id
+  //   const mockData = {
+  //     id: mockRecord.id,
+  //     fields: { Name: ITEM_NAME },
+  //   };
+  //   service.update(null, [mockData]).then((output) => {
+  //     expect(output).toBeTruthy();
+  //     expect(output[0].get("Name")).toBe(ITEM_NAME);
+  //     done();
+  //   });
+  // });
 });
 
 // feathers-rethinky
-//   extend
-//     ✓ extends and uses extended method
-//   get
-//     ✓ returns an instance that exists
-//     ✓ returns NotFound error for non-existing id
+
 //   remove
 //     ✓ deletes an existing instance and returns the deleted instance
 //     ✓ deletes multiple instances

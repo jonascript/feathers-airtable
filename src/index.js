@@ -14,9 +14,15 @@ class Service {
 
   async find(params) {
     return new Promise((resolve, reject) => {
-      const { filterByFormula } = params;
+      const { query } = params;
+      let filterByFormula = "";
 
-      const selectParams = {};
+      if (query) {
+        const filters = Object.keys(query.fields).map((key) => {
+          return `{${key}} = '${query.fields[key]}'`;
+        });
+        filterByFormula = filters.join(",");
+      }
 
       const output = [];
       this.base(this.options.tableName)
@@ -81,11 +87,23 @@ class Service {
   }
 
   remove(id, params) {
+    if (!id) {
+      this.find(params).then((records) => {
+        if (Array.isArray(records)) {
+          return Promise.all(records.map((current) => this.remove(current.id)));
+        }
+      });
+    }
+
     return new Promise((resolve, reject) => {
       this.base(this.options.tableName)
         .destroy([id])
         .then((result) => {
-          resolve(id);
+          if (Array.isArray(result)) {
+            resolve(result[0]);
+          } else {
+            resolve(result);
+          }
         })
         .catch((err) => reject(err));
     });
