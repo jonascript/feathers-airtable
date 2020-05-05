@@ -133,6 +133,9 @@ describe("Airtable service", () => {
   });
 
   it("can update a record", (done) => {
+    // update
+    // - replaces an existing instance
+    // - returns NotFound error for non-existing id
     const mockData = {
       id: mockRecord.id,
       fields: { Name: ITEM_NAME },
