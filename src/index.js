@@ -4,6 +4,8 @@ import Airtable from "airtable";
 class Service {
   constructor(options) {
     this.options = options || {};
+    const { apiKey, tableName, baseId } = this.options;
+    this.base = new Airtable({ apiKey }).base(baseId);
   }
 
   setup(app) {
@@ -16,12 +18,8 @@ class Service {
 
       const selectParams = {};
 
-      const base = new Airtable({ apiKey: this.options.apiKey }).base(
-        params.baseId
-      );
-
       const output = [];
-      base(params.tableName || this.options.tableName)
+      this.base(this.options.tableName)
         .select({ filterByFormula })
         .eachPage(
           async function page(records, fetchNextPage) {
@@ -32,10 +30,9 @@ class Service {
           },
           function done(err) {
             if (err) {
-              reject(err);
-              return;
+              return reject(err);
             }
-            resolve(output);
+            return resolve(output);
           }
         );
     });
@@ -43,11 +40,7 @@ class Service {
 
   get(id, params) {
     return new Promise((resolve, reject) => {
-      const base = new Airtable({ apiKey: this.options.apiKey }).base(
-        params.baseId
-      );
-
-      base(params.tableName || this.options.tableName)
+      this.base(this.options.tableName)
         .find(id)
         .then((record) => resolve(record))
         .catch((err) => reject(err));
@@ -59,11 +52,7 @@ class Service {
       return Promise.all(data.map((current) => this.create(current, params)));
     }
     return new Promise((resolve, reject) => {
-      const base = new Airtable({ apiKey: this.options.apiKey }).base(
-        params.baseId
-      );
-
-      base(params.tableName)
+      this.base(this.options.tableName)
         .create([data])
         .then((result) => resolve(result[0]))
         .catch((err) => reject(err));
@@ -82,11 +71,7 @@ class Service {
     }
 
     return new Promise((resolve, reject) => {
-      const base = new Airtable({ apiKey: this.options.apiKey }).base(
-        params.baseId
-      );
-
-      base(params.tableName || this.options.tableName)
+      this.base(this.options.tableName)
         .update(reqData)
         .then((result) => {
           resolve(result);
@@ -97,11 +82,7 @@ class Service {
 
   remove(id, params) {
     return new Promise((resolve, reject) => {
-      const base = new Airtable({ apiKey: this.options.apiKey }).base(
-        params.baseId
-      );
-
-      base(params.tableName || this.options.tableName)
+      this.base(this.options.tableName)
         .destroy([id])
         .then((result) => {
           resolve(id);

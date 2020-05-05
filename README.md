@@ -1,40 +1,97 @@
 # feathers-airtable
 
-[![Build Status](https://travis-ci.org/jonascript/feathers-airtable.png?branch=master)](https://travis-ci.org/jonascript/feathers-airtable)
-[![Code Climate](https://codeclimate.com/github/jonascript/feathers-airtable/badges/gpa.svg)](https://codeclimate.com/github/jonascript/feathers-airtable)
-[![Test Coverage](https://codeclimate.com/github/jonascript/feathers-airtable/badges/coverage.svg)](https://codeclimate.com/github/jonascript/feathers-airtable/coverage)
-[![Dependency Status](https://img.shields.io/david/jonascript/feathers-airtable.svg?style=flat-square)](https://david-dm.org/jonascript/feathers-airtable)
-[![Download Status](https://img.shields.io/npm/dm/feathers-airtable.svg?style=flat-square)](https://www.npmjs.com/package/feathers-airtable)
-
-> A wrapper for the feathers API
-
-## Installation
-
-```
-npm install feathers-airtable --save
+```bash
+$ npm install --save feathers-airtable
 ```
 
-## Documentation
+> __Important:__ `feathers-airtable` implements the [Feathers Common database adapter API](https://docs.feathersjs.com/api/databases/common.html) and [querying syntax](https://docs.feathersjs.com/api/databases/querying.html).
 
-TBD
 
-## Complete Example
+## API
 
-Here's an example of a Feathers server that uses `feathers-airtable`. 
+### `service(options)`
+
+Returns a new service instance initialized with the given options.
 
 ```js
-const feathers = require('@feathersjs/feathers');
-const plugin = require('feathers-airtable');
+const service = require('feathers-airtable');
 
-// Initialize the application
-const app = feathers();
+app.use('/my-table', service({
+  apiKey: '123123213'
+  baseId: '123123'
+  tableName: 'Table 1'
+}));
+app.use('/my-table', service({ storage, id, startId, name, store, paginate }));
+```
 
-// Initialize the plugin
-app.configure(plugin());
+__Options:__
+
+- `storage` (**required**) - The local storage engine. You can pass in the browsers `window.airtable`, React Native's `AsyncStorage` or a NodeJS airtable module.
+- `id` (*optional*, default: `'id'`) - The name of the id field property.
+- `startId` (*optional*, default: `0`) - An id number to start with that will be incremented for new record.
+- `name` (*optional*, default: `'feathers'`) - The key to store data under in local or async storage.
+- `store` (*optional*) - An object with id to item assignments to pre-initialize the data store
+- `events` (*optional*) - A list of [custom service events](https://docs.feathersjs.com/api/events.html#custom-events) sent by this service
+- `paginate` (*optional*) - A [pagination object](https://docs.feathersjs.com/api/databases/common.html#pagination) containing a `default` and `max` page size
+- `whitelist` (*optional*) - A list of additional query parameters to allow
+- `multi` (*optional*) - Allow `create` with arrays and `update` and `remove` with `id` `null` to change multiple items. Can be `true` for all methods or an array of allowed methods (e.g. `[ 'remove', 'create' ]`)
+
+## Example
+
+See the [clients](https://docs.feathersjs.com/api/client.html) chapter for more information about using Feathers in the browser and React Native.
+
+### Browser
+
+```html
+<script type="text/javascript" src="//unpkg.com/@feathersjs/client@^3.0.0/dist/feathers.js"></script>
+<script type="text/javascript" src="//unpkg.com/feathers-airtable@^2.0.2/dist/feathers-airtable.js"></script>
+<script type="text/javascript">
+  var service = feathers.airtable({
+    storage: window.airtable
+  });
+  var app = feathers().use('/my-table', service);
+
+  var messages = app.service('my-table');
+
+  messages.on('created', function(message) {
+    console.log('Someone created a message', message);
+  });
+
+  messages.create({
+    text: 'Message created in browser'
+  });
+</script>
+```
+
+### React Native
+
+```bash
+$ npm install @feathersjs/feathers feathers-airtable --save
+```
+
+```js
+import React from 'react-native';
+import feathers from '@feathersjs/feathers';
+import airtable from 'feathers-airtable';
+
+const { AsyncStorage } = React;
+
+const app = feathers()
+  .use('/my-table', airtable({ storage: AsyncStorage }));
+
+const messages = app.service('my-table');
+
+messages.on('created', function(message) {
+  console.log('Someone created a message', message);
+});
+
+messages.create({
+  text: 'Message from React Native'
+});
 ```
 
 ## License
 
-Copyright (c) 2018
+Copyright (c) 2017
 
 Licensed under the [MIT license](LICENSE).
