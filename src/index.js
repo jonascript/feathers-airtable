@@ -13,20 +13,139 @@ class Service {
   }
 
   async find(params) {
+    // _find(params, getFilter) {
+    //   params = params.query || {};
+    //   let query = this.Model.getJoin(this.joinModels);
+    //     //Break our some params.
+    //  // console.log(getFilter.toString());
+    //   if(!getFilter){
+    //     getFilter = filter;
+    //   }
+    //   const filters = getFilter(params);
+    //   //console.log("filters",filters);
+    //   //console.log("params",params);
+    //   if (filters.$select) {
+    //     query = query.pluck(filters.$select);
+    //   }
+    //   if (filters.$limit) {
+    //     query = query.limit(filters.$limit);
+    //   }
+    //   if (filters.$sort) {
+    //     Object.keys(filters.$sort).forEach(function (element) {
+    //       query = query.orderBy(element);
+    //     }, this);
+    //   }
+    //   if (filters.$skip) {
+    //     query = query.skip(filters.$skip);
+    //   }
+    //   if (params.$or) {
+    //     query = query.filter(orMapper(params.$or));
+    //     delete params.$or;
+    //   }
+    //   if (params.$not) {
+    //     query = query.filter(notMapper(params.$not));
+    //     delete params.$not;
+    //   }
+    //     //See if any of the name params have a special result on them
+    //   return query.filter(parseQuery(params)).run().then(function(values){
+    //     const total = 3;
+    //     const paginator = {
+    //       total,
+    //       limit: filters.$limit,
+    //       skip: filters.$skip || 0,
+    //       data: values
+    //     };
+    //     return Promise.resolve(paginator);
+    //   });
+    // }
+
+    const mapQuery = (queryParams) => {
+      console.log("queryParams", queryParams);
+      const condtionals = [];
+      const { $or, $and, $gte, $not } = queryParams;
+
+      // Base Case
+      if (typeof queryParams !== "object") {
+        console.log("BASE CASE", queryParams);
+        return queryParams;
+      }
+
+      // OR
+      if ($or) {
+        condtionals.push(
+          `OR(${$or
+            .map((queryParam) => {
+              return Object.keys(queryParam).map((key) => {
+                if (typeof queryParam[key] === "object") {
+                  return mapQuery(queryParam);
+                } else {
+                  return `{${key}} = '${mapQuery(queryParam[key])}'`;
+                }
+              });
+            })
+            .join(",")})`
+        );
+      } else {
+        // AND
+
+        // @todo this is not mapped correctly
+        condtionals.push(
+          `AND(${Object.keys(queryParams)
+            .map((queryParam) => {
+              if (typeof queryParam === "object") {
+                return mapQuery(queryParam);
+              }
+
+              return `{${queryParam}} = ${mapQuery(queryParams[queryParam])}`;
+              console.log("queryParam", queryParam);
+            })
+            .join(",")})`
+        );
+      }
+
+      // @todo $gte
+      // if ($gte) {
+      //   console.log("GTE", $gte);
+      //   output = condtionals.push(``);
+      // }
+
+      console.log("condtionals", condtionals);
+      return condtionals.join(",");
+    };
+
     return new Promise((resolve, reject) => {
       const { query } = params;
-      let filterByFormula = "";
+      let filterByFormula = "",
+        maxRecords = "";
+
+      const selectOption = {};
 
       if (query) {
-        const filters = Object.keys(query.fields).map((key) => {
-          return `{${key}} = '${query.fields[key]}'`;
-        });
-        filterByFormula = filters.join(",");
+        const { fields, $limit, $or } = query;
+
+        if (fields) {
+          const filters = Object.keys(fields).map((key) => {
+            return `{${key}} = '${fields[key]}'`;
+          });
+          if (filters.length > 1) {
+            filterByFormula = `AND(${filters.join(",")})`;
+          } else {
+            filterByFormula = filters.join(",");
+          }
+        } else {
+          filterByFormula = mapQuery(query);
+        }
+
+        selectOption.filterByFormula = filterByFormula;
+
+        if ($limit) {
+          selectOption.maxRecords = parseInt($limit, 10);
+        }
       }
 
       const output = [];
       this.base(this.options.tableName)
-        .select({ filterByFormula })
+        .select(selectOption)
         .eachPage(
           async function page(records, fetchNextPage) {
             records.forEach(function (record) {

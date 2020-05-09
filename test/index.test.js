@@ -51,26 +51,6 @@ describe("Airtable service", () => {
   });
 
   describe("find", () => {
-    //   find
-    //     ✓ returns all items
-    //     ✓ filters results by a single parameter
-    //     ✓ filters results by multiple parameters
-    //     - can handle complex nested special queries
-    //     special filters
-    //       ✓ can $sort
-    //       ✓ can $limit
-    //       ✓ can $skip
-    //       ✓ can $select
-    //       ✓ can $or
-    //       - can $not
-    //       ✓ can $in
-    //       ✓ can $nin
-    //       ✓ can $lt
-    //       ✓ can $lte
-    //       ✓ can $gt
-    //       ✓ can $gte
-    //       ✓ can $ne
-    //       - can $populate
     it("returns all items", (done) => {
       service.find({}).then((records) => {
         for (let record of records) {
@@ -94,6 +74,100 @@ describe("Airtable service", () => {
           done();
         })
         .catch(done);
+    });
+
+    it("filters results by multiple parameters", (done) => {
+      var params = {
+        query: { fields: { Notes: `This is a note.`, Name: ITEM_NAME } },
+      };
+
+      service
+        .find(params)
+        .then((data) => {
+          expect(Array.isArray(data)).toBe(true);
+          expect(data.length).toBe(1);
+          expect(data.length > 0).toBe(true);
+          expect(data[0].get("Name")).toEqual(ITEM_NAME);
+          done();
+        })
+        .catch(done);
+    });
+
+    it("can handle complex nested special queries", (done) => {
+      var params = {
+        query: {
+          $or: [
+            {
+              name: "Doug",
+            },
+            {
+              age: {
+                $gte: 18,
+                $not: 25,
+              },
+            },
+          ],
+        },
+      };
+
+      service
+        .find(params)
+        .then((data) => {
+          expect(Array.isArray(data)).toBe(true);
+          expect(data.length).toBe(1);
+          expect(data.length > 0).toBe(true);
+          expect(data[0].get("Name")).toEqual(ITEM_NAME);
+          done();
+        })
+        .catch(done);
+    });
+    //     special filters
+    //       ✓ can $sort
+    //       ✓ can $limit
+    //       ✓ can $skip
+    //       ✓ can $select
+    //       ✓ can $or
+    //       - can $not
+    //       ✓ can $in
+    //       ✓ can $nin
+    //       ✓ can $lt
+    //       ✓ can $lte
+    //       ✓ can $gt
+    //       ✓ can $gte
+    //       ✓ can $ne
+    //       - can $populate
+
+    describe("special filters", () => {
+      let mockRecord;
+      beforeAll((done) => {
+        service.create(mockData).then((output) => {
+          mockRecord = output;
+          done();
+        });
+      });
+
+      it("can $limit", (done) => {
+        var params = {
+          query: { $limit: 1, fields: { Notes: `This is a note.` } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(1);
+            expect(data.length > 0).toBe(true);
+            expect(data[0].get("Name")).toEqual(ITEM_NAME);
+            done();
+          })
+          .catch(done);
+      });
+
+      afterAll((done) => {
+        service.remove(mockRecord.id).then((output) => {
+          done();
+        });
+      });
     });
   });
 
