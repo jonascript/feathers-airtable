@@ -60,16 +60,13 @@ class Service {
     // }
 
     const mapQuery = (queryParams) => {
-      console.log("queryParams", queryParams);
       const condtionals = [];
-      const { $or, $and, $gte, $not } = queryParams;
+      const { $or, $and, $gte, $not, $sort } = queryParams;
 
       // Base Case
       if (typeof queryParams !== "object") {
-        console.log("BASE CASE", queryParams);
         return queryParams;
       }
-
       // OR
       if ($or) {
         condtionals.push(
@@ -87,17 +84,16 @@ class Service {
         );
       } else {
         // AND
-
         // @todo this is not mapped correctly
         condtionals.push(
           `AND(${Object.keys(queryParams)
+            .filter((queryParam) => queryParam !== "$sort")
             .map((queryParam) => {
               if (typeof queryParam === "object") {
                 return mapQuery(queryParam);
               }
 
               return `{${queryParam}} = ${mapQuery(queryParams[queryParam])}`;
-              console.log("queryParam", queryParam);
             })
             .join(",")})`
         );
@@ -109,7 +105,6 @@ class Service {
       //   output = condtionals.push(``);
       // }
 
-      console.log("condtionals", condtionals);
       return condtionals.join(",");
     };
 
@@ -118,10 +113,10 @@ class Service {
       let filterByFormula = "",
         maxRecords = "";
 
-      const selectOption = {};
+      const selectOptions = {};
 
       if (query) {
-        const { fields, $limit, $or } = query;
+        const { fields, $limit, $or, $sort } = query;
 
         if (fields) {
           const filters = Object.keys(fields).map((key) => {
@@ -136,16 +131,22 @@ class Service {
           filterByFormula = mapQuery(query);
         }
 
-        selectOption.filterByFormula = filterByFormula;
+        selectOptions.filterByFormula = filterByFormula;
 
         if ($limit) {
-          selectOption.maxRecords = parseInt($limit, 10);
+          selectOptions.maxRecords = parseInt($limit, 10);
+        }
+
+        if ($sort) {
+          selectOptions.sort = Object.keys($sort).map((key) => {
+            return { field: key, direction: $sort[key] > 0 ? "asc" : "desc" };
+          });
         }
       }
 
       const output = [];
       this.base(this.options.tableName)
-        .select(selectOption)
+        .select(selectOptions)
         .eachPage(
           async function page(records, fetchNextPage) {
             records.forEach(function (record) {

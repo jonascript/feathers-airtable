@@ -14,7 +14,8 @@ const app = express(feathers());
 
 describe("Airtable service", () => {
   let i = 1;
-  let mockRecord, service;
+  let mockRecords = [],
+    service;
   const mockData = {
     fields: {
       Name: ITEM_NAME,
@@ -34,15 +35,16 @@ describe("Airtable service", () => {
     service = app.service("airtable");
 
     service.create(mockData).then((output) => {
-      mockRecord = output;
+      mockRecords.push(output);
       done();
     });
   });
 
-  afterAll((done) => {
-    service.remove(mockRecord.id).then((output) => {
-      done();
-    });
+  afterAll(async (done) => {
+    for (let x = 0; x < mockRecords.length; x++) {
+      await service.remove(mockRecords[x].id);
+    }
+    done();
   });
 
   it("registered the service", (done) => {
@@ -98,28 +100,35 @@ describe("Airtable service", () => {
         query: {
           $or: [
             {
-              name: "Doug",
+              Name: ITEM_NAME + "_1",
             },
             {
-              age: {
-                $gte: 18,
-                $not: 25,
-              },
+              Name: ITEM_NAME + "_2",
             },
           ],
         },
       };
 
       service
-        .find(params)
-        .then((data) => {
-          expect(Array.isArray(data)).toBe(true);
-          expect(data.length).toBe(1);
-          expect(data.length > 0).toBe(true);
-          expect(data[0].get("Name")).toEqual(ITEM_NAME);
-          done();
+        .create({
+          fields: {
+            Name: ITEM_NAME + "_2",
+            Notes: `This is another note.`,
+          },
         })
-        .catch(done);
+        .then((output) => {
+          mockRecords.push(output);
+          service
+            .find(params)
+            .then((data) => {
+              expect(Array.isArray(data)).toBe(true);
+              expect(data.length).toBe(1);
+              expect(data.length > 0).toBe(true);
+              expect(data[0].get("Name")).toEqual(ITEM_NAME + "_2");
+              done();
+            })
+            .catch(done);
+        });
     });
     //     special filters
     //       ✓ can $sort
@@ -138,12 +147,66 @@ describe("Airtable service", () => {
     //       - can $populate
 
     describe("special filters", () => {
-      let mockRecord;
-      beforeAll((done) => {
-        service.create(mockData).then((output) => {
-          mockRecord = output;
-          done();
-        });
+      beforeAll(async (done) => {
+        mockRecords.push(
+          await service.create({
+            fields: {
+              Name: ITEM_NAME + "_1",
+              Notes: `This is a note.`,
+            },
+          })
+        );
+
+        mockRecords.push(
+          await service.create({
+            fields: {
+              Name: ITEM_NAME + "_2",
+              Notes: `This is a note..`,
+            },
+          })
+        );
+
+        done();
+      });
+
+      it("can $sort ascending", (done) => {
+        var params = {
+          query: {
+            $sort: {
+              Name: 1,
+            },
+          },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(4);
+            expect(data[0].get("Name")).toEqual(ITEM_NAME);
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $sort descending", (done) => {
+        var params = {
+          query: {
+            $sort: {
+              Name: -1,
+            },
+          },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(4);
+            expect(data[0].get("Name")).toEqual(ITEM_NAME + "_2");
+            done();
+          })
+          .catch(done);
       });
 
       it("can $limit", (done) => {
@@ -156,17 +219,9 @@ describe("Airtable service", () => {
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
             expect(data.length).toBe(1);
-            expect(data.length > 0).toBe(true);
-            expect(data[0].get("Name")).toEqual(ITEM_NAME);
             done();
           })
           .catch(done);
-      });
-
-      afterAll((done) => {
-        service.remove(mockRecord.id).then((output) => {
-          done();
-        });
       });
     });
   });
@@ -252,7 +307,6 @@ describe("Airtable service", () => {
       for (let x = 0; x < testIds.length; x++) {
         service.remove(testIds[x]);
       }
-
       done();
     });
     it("creates a single new instance and returns the created instance", (done) => {
@@ -310,7 +364,7 @@ describe("Airtable service", () => {
 
   describe("get", () => {
     it("returns an instance that exists", (done) => {
-      service.get(mockRecord.id).then((output) => {
+      service.get(mockRecords[0].id).then((output) => {
         expect(output).toBeTruthy();
         expect(output.get("Name")).toBe(ITEM_NAME);
         done();
