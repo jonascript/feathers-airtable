@@ -60,8 +60,9 @@ class Service {
     // }
 
     const mapQuery = (queryParams) => {
+      const validQueryParams = ["$in", "$or", "$not", "$in"];
       const condtionals = [];
-      const { $or, $and, $gte, $not, $sort } = queryParams;
+      const { $or, $and, $gte, $not, $sort, $in } = queryParams;
 
       // Base Case
       if (typeof queryParams !== "object") {
@@ -71,6 +72,11 @@ class Service {
       if ($or) {
         condtionals.push(
           `OR(${$or
+            .filter(
+              (queryParam) =>
+                validQueryParams.includes(queryParam) ||
+                typeof queryParam === "object"
+            )
             .map((queryParam) => {
               return Object.keys(queryParam).map((key) => {
                 if (typeof queryParam[key] === "object") {
@@ -82,15 +88,44 @@ class Service {
             })
             .join(",")})`
         );
+      } else if ($not) {
+        condtionals.push(
+          `NOT(
+               ${Object.keys($not).map((key) => {
+                 if (typeof $not[key] === "object") {
+                   return mapQuery($not);
+                 } else {
+                   return `{${key}} = '${mapQuery($not[key])}'`;
+                 }
+               })})`
+        );
+      } else if ($in) {
+        console.log("$in", $in);
       } else {
         // AND
         // @todo this is not mapped correctly
         condtionals.push(
           `AND(${Object.keys(queryParams)
-            .filter((queryParam) => queryParam !== "$sort")
+            .filter(
+              (queryParam) =>
+                validQueryParams.includes(queryParam) ||
+                typeof queryParam === "object" ||
+                queryParam[0] !== "$"
+            )
             .map((queryParam) => {
               if (typeof queryParam === "object") {
+                // @todo in
+                console.log("queryParam", queryParam);
+
+                // if (queryParams[queryParam].$in) {
+                //   const $ors = queryParams[queryParam].$in.map((param) => {
+                //     return { [queryParam]: `${param}` };
+                //   });
+
+                //   return mapQuery({ $or: $ors });
+                // } else {
                 return mapQuery(queryParam);
+                //   }
               }
 
               return `{${queryParam}} = ${mapQuery(queryParams[queryParam])}`;
@@ -116,7 +151,7 @@ class Service {
       const selectOptions = {};
 
       if (query) {
-        const { fields, $limit, $or, $sort } = query;
+        const { fields, $limit, $or, $sort, $select } = query;
 
         if (fields) {
           const filters = Object.keys(fields).map((key) => {
@@ -141,6 +176,10 @@ class Service {
           selectOptions.sort = Object.keys($sort).map((key) => {
             return { field: key, direction: $sort[key] > 0 ? "asc" : "desc" };
           });
+        }
+
+        if ($select) {
+          selectOptions.fields = $select;
         }
       }
 

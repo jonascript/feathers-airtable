@@ -169,6 +169,61 @@ describe("Airtable service", () => {
         done();
       });
 
+      it("can $not", (done) => {
+        var params = {
+          query: { $not: { Name: ITEM_NAME } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(3);
+
+            for (let x = 0; x < data.length; x++) {
+              expect(data[x].get("Name")).not.toEqual(ITEM_NAME);
+            }
+
+            done();
+          })
+          .catch(done);
+      });
+
+      // @todo
+      it("can $in", (done) => {
+        var params = {
+          query: { Name: { $in: [ITEM_NAME + "_1", ITEM_NAME + "_2"] } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(4);
+            expect(data[0].get("Name")).not.toBeTruthy();
+            expect(data[0].get("Notes")).toBeTruthy();
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $select", (done) => {
+        var params = {
+          query: { $select: ["Notes"] },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(4);
+            expect(data[0].get("Name")).not.toBeTruthy();
+            expect(data[0].get("Notes")).toBeTruthy();
+            done();
+          })
+          .catch(done);
+      });
+
       it("can $sort ascending", (done) => {
         var params = {
           query: {
