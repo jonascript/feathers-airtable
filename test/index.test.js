@@ -20,6 +20,7 @@ describe("Airtable service", () => {
     fields: {
       Name: ITEM_NAME,
       Notes: `This is a note.`,
+      Count: i++,
     },
   };
 
@@ -114,6 +115,7 @@ describe("Airtable service", () => {
           fields: {
             Name: ITEM_NAME + "_2",
             Notes: `This is another note.`,
+            Count: i++,
           },
         })
         .then((output) => {
@@ -153,6 +155,7 @@ describe("Airtable service", () => {
             fields: {
               Name: ITEM_NAME + "_1",
               Notes: `This is a note.`,
+              Count: i++,
             },
           })
         );
@@ -162,6 +165,7 @@ describe("Airtable service", () => {
             fields: {
               Name: ITEM_NAME + "_2",
               Notes: `This is a note..`,
+              Count: i++,
             },
           })
         );
@@ -189,7 +193,103 @@ describe("Airtable service", () => {
           .catch(done);
       });
 
-      // @todo
+      it("can $ne", (done) => {
+        var params = {
+          query: { Count: { $ne: 1 } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(3);
+            expect(data[0].get("Notes")).toBeTruthy();
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $lt", (done) => {
+        var params = {
+          query: { Count: { $lt: 100 } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(4);
+            expect(data[0].get("Notes")).toBeTruthy();
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $lte", (done) => {
+        var params = {
+          query: { Count: { $lte: 1 } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(1);
+            expect(data[0].get("Count")).toEqual(1);
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $gt", (done) => {
+        var params = {
+          query: { Count: { $gt: 1 } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(3);
+            expect(data[0].get("Count")).toBeGreaterThan(1);
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $gte", (done) => {
+        var params = {
+          query: { Count: { $gte: 3 } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(2);
+            expect(data[0].get("Count")).toBeGreaterThan(1);
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $nin", (done) => {
+        var params = {
+          query: { Name: { $nin: [ITEM_NAME + "_1", ITEM_NAME + "_2"] } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(1);
+            expect(data[0].get("Name")).toEqual(ITEM_NAME);
+            expect(data[0].get("Notes")).toBeTruthy();
+            done();
+          })
+          .catch(done);
+      });
+
       it("can $in", (done) => {
         var params = {
           query: { Name: { $in: [ITEM_NAME + "_1", ITEM_NAME + "_2"] } },

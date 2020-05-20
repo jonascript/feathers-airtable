@@ -59,8 +59,26 @@ class Service {
     //   });
     // }
 
+    const mapConditional = (queryParam) => {
+      console.log("mapConditional", queryParam);
+      const { $in, $nin } = queryParam;
+      if ($in) {
+        const $ors = $in.map((param) => {
+          return { [queryParam]: `${param}` };
+        });
+        return mapQuery({ $or: $ors });
+      } else if ($nin) {
+        const $ors = $in.map((param) => {
+          return { [queryParam]: `${param}` };
+        });
+        return `NOT(${mapQuery({ $or: $ors })})`;
+      } else {
+        return mapQuery(queryParam);
+      }
+    };
+
     const mapQuery = (queryParams) => {
-      const validQueryParams = ["$in", "$or", "$not", "$in"];
+      const validQueryParams = ["$or", "$not", "$in"];
       const condtionals = [];
       const { $or, $and, $gte, $not, $sort, $in } = queryParams;
 
@@ -99,14 +117,6 @@ class Service {
                  }
                })})`
         );
-      } else if ($in) {
-        console.log("$in", $in);
-
-        const $ors = $in.map((param) => {
-          return { [queryParam]: `${param}` };
-        });
-
-        console.log("$ors", $ors);
       } else {
         // AND
         // @todo this is not mapped correctly
@@ -121,11 +131,33 @@ class Service {
             .map((queryParam) => {
               if (typeof queryParams[queryParam] === "object") {
                 // Special equality in filter. Remaps to equivalent $or
-                if (queryParams[queryParam].$in) {
-                  const $ors = queryParams[queryParam].$in.map((param) => {
+
+                const { $in, $nin, $lt, $lte, $gt, $gte, $ne } = queryParams[
+                  queryParam
+                ];
+
+                // return mapConditional(queryParams);
+                if ($in) {
+                  const $ors = $in.map((param) => {
                     return { [queryParam]: `${param}` };
                   });
                   return mapQuery({ $or: $ors });
+                } else if ($nin) {
+                  const $ors = $nin.map((param) => {
+                    return { [queryParam]: `${param}` };
+                  });
+                  return `NOT(${mapQuery({ $or: $ors })})`;
+                  // @todo
+                } else if ($lt) {
+                  return `{${queryParam}} < ${$lt}`;
+                } else if ($lte) {
+                  return `{${queryParam}} <= ${$lte}`;
+                } else if ($gt) {
+                  return `{${queryParam}} > ${$gt}`;
+                } else if ($gte) {
+                  return `{${queryParam}} >= ${$gte}`;
+                } else if ($ne) {
+                  return `{${queryParam}} != ${$ne}`;
                 } else {
                   return mapQuery(queryParam);
                 }
