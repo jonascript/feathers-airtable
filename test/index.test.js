@@ -132,21 +132,6 @@ describe("Airtable service", () => {
             .catch(done);
         });
     });
-    //     special filters
-    //       ✓ can $sort
-    //       ✓ can $limit
-    //       ✓ can $skip
-    //       ✓ can $select
-    //       ✓ can $or
-    //       - can $not
-    //       ✓ can $in
-    //       ✓ can $nin
-    //       ✓ can $lt
-    //       ✓ can $lte
-    //       ✓ can $gt
-    //       ✓ can $gte
-    //       ✓ can $ne
-    //       - can $populate
 
     describe("special filters", () => {
       beforeAll(async (done) => {
