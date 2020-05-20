@@ -54,6 +54,10 @@ describe("Airtable service", () => {
   });
 
   describe("find", () => {
+    it("can $populate", () => {
+      // @todo
+    });
+
     it("returns all items", (done) => {
       service.find({}).then((records) => {
         for (let record of records) {
