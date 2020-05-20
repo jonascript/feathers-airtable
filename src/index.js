@@ -101,6 +101,12 @@ class Service {
         );
       } else if ($in) {
         console.log("$in", $in);
+
+        const $ors = $in.map((param) => {
+          return { [queryParam]: `${param}` };
+        });
+
+        console.log("$ors", $ors);
       } else {
         // AND
         // @todo this is not mapped correctly
@@ -113,21 +119,17 @@ class Service {
                 queryParam[0] !== "$"
             )
             .map((queryParam) => {
-              if (typeof queryParam === "object") {
-                // @todo in
-                console.log("queryParam", queryParam);
-
-                // if (queryParams[queryParam].$in) {
-                //   const $ors = queryParams[queryParam].$in.map((param) => {
-                //     return { [queryParam]: `${param}` };
-                //   });
-
-                //   return mapQuery({ $or: $ors });
-                // } else {
-                return mapQuery(queryParam);
-                //   }
+              if (typeof queryParams[queryParam] === "object") {
+                // Special equality in filter. Remaps to equivalent $or
+                if (queryParams[queryParam].$in) {
+                  const $ors = queryParams[queryParam].$in.map((param) => {
+                    return { [queryParam]: `${param}` };
+                  });
+                  return mapQuery({ $or: $ors });
+                } else {
+                  return mapQuery(queryParam);
+                }
               }
-
               return `{${queryParam}} = ${mapQuery(queryParams[queryParam])}`;
             })
             .join(",")})`

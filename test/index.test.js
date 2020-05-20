@@ -199,8 +199,8 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(4);
-            expect(data[0].get("Name")).not.toBeTruthy();
+            expect(data.length).toBe(3);
+            expect(data[0].get("Name")).not.toEqual(ITEM_NAME);
             expect(data[0].get("Notes")).toBeTruthy();
             done();
           })
