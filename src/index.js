@@ -266,6 +266,27 @@ class Service {
     });
   }
 
+  patch(id, data, params) {
+    let reqData;
+
+    // For single resource
+    if (id) {
+      reqData = [{ id, fields: data }];
+    } else {
+      reqData = data.map((dataItem) => {
+        fields: dataItem;
+      });
+    }
+    return new Promise((resolve, reject) => {
+      this.base(this.options.tableName)
+        .update(reqData)
+        .then((result) => {
+          resolve(result);
+        })
+        .catch((err) => reject(err));
+    });
+  }
+
   update(id, data, params) {
     let reqData;
 

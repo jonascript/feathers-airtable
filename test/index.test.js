@@ -527,6 +527,16 @@ describe("Airtable service", () => {
   });
 
   describe("patch", () => {
+    it("returns an instance that exists", (done) => {
+      const randomQty = Math.floor(Math.random() * 100);
+      service.patch(mockRecords[0].id, { Count: randomQty }).then((output) => {
+        expect(output).toBeTruthy();
+        // @todo mult vs single
+        expect(output[0].get("Count")).toBe(randomQty);
+        done();
+      });
+    });
+
     // ✓ updates an existing instance
     // ✓ patches multiple instances
     // ✓ returns NotFound error for non-existing id
