@@ -60,7 +60,6 @@ class Service {
     // }
 
     const mapConditional = (queryParam) => {
-      console.log("mapConditional", queryParam);
       const { $in, $nin } = queryParam;
       if ($in) {
         const $ors = $in.map((param) => {
@@ -147,7 +146,6 @@ class Service {
                     return { [queryParam]: `${param}` };
                   });
                   return `NOT(${mapQuery({ $or: $ors })})`;
-                  // @todo
                 } else if ($lt) {
                   return `{${queryParam}} < ${$lt}`;
                 } else if ($lte) {
@@ -180,12 +178,13 @@ class Service {
     return new Promise((resolve, reject) => {
       const { query } = params;
       let filterByFormula = "",
-        maxRecords = "";
+        maxRecords = "",
+        skip;
 
       const selectOptions = {};
 
       if (query) {
-        const { fields, $limit, $or, $sort, $select } = query;
+        const { fields, $limit, $or, $sort, $select, $skip } = query;
 
         if (fields) {
           const filters = Object.keys(fields).map((key) => {
@@ -202,10 +201,6 @@ class Service {
 
         selectOptions.filterByFormula = filterByFormula;
 
-        if ($limit) {
-          selectOptions.maxRecords = parseInt($limit, 10);
-        }
-
         if ($sort) {
           selectOptions.sort = Object.keys($sort).map((key) => {
             return { field: key, direction: $sort[key] > 0 ? "asc" : "desc" };
@@ -214,6 +209,15 @@ class Service {
 
         if ($select) {
           selectOptions.fields = $select;
+        }
+
+        if ($limit) {
+          selectOptions.maxRecords = parseInt($limit, 10);
+        }
+
+        if ($skip) {
+          skip = $skip;
+          selectOptions.maxRecords += skip;
         }
       }
 
@@ -230,6 +234,10 @@ class Service {
           function done(err) {
             if (err) {
               return reject(err);
+            }
+
+            if (skip) {
+              return resolve(output.slice(skip));
             }
             return resolve(output);
           }

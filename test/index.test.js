@@ -54,10 +54,6 @@ describe("Airtable service", () => {
   });
 
   describe("find", () => {
-    it("can $populate", () => {
-      // @todo
-    });
-
     it("returns all items", (done) => {
       service.find({}).then((records) => {
         for (let record of records) {
@@ -193,6 +189,36 @@ describe("Airtable service", () => {
             expect(Array.isArray(data)).toBe(true);
             expect(data.length).toBe(3);
             expect(data[0].get("Notes")).toBeTruthy();
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $skip", (done) => {
+        var params = {
+          query: { $skip: 1 },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(3);
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can $skip & $limit", (done) => {
+        var params = {
+          query: { $skip: 2, $limit: 2 },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(2);
             done();
           })
           .catch(done);
