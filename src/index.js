@@ -13,52 +13,6 @@ class Service {
   }
 
   async find(params) {
-    // _find(params, getFilter) {
-    //   params = params.query || {};
-    //   let query = this.Model.getJoin(this.joinModels);
-    //     //Break our some params.
-    //  // console.log(getFilter.toString());
-    //   if(!getFilter){
-    //     getFilter = filter;
-    //   }
-    //   const filters = getFilter(params);
-    //   //console.log("filters",filters);
-    //   //console.log("params",params);
-    //   if (filters.$select) {
-    //     query = query.pluck(filters.$select);
-    //   }
-    //   if (filters.$limit) {
-    //     query = query.limit(filters.$limit);
-    //   }
-    //   if (filters.$sort) {
-    //     Object.keys(filters.$sort).forEach(function (element) {
-    //       query = query.orderBy(element);
-    //     }, this);
-    //   }
-    //   if (filters.$skip) {
-    //     query = query.skip(filters.$skip);
-    //   }
-    //   if (params.$or) {
-    //     query = query.filter(orMapper(params.$or));
-    //     delete params.$or;
-    //   }
-    //   if (params.$not) {
-    //     query = query.filter(notMapper(params.$not));
-    //     delete params.$not;
-    //   }
-    //     //See if any of the name params have a special result on them
-    //   return query.filter(parseQuery(params)).run().then(function(values){
-    //     const total = 3;
-    //     const paginator = {
-    //       total,
-    //       limit: filters.$limit,
-    //       skip: filters.$skip || 0,
-    //       data: values
-    //     };
-    //     return Promise.resolve(paginator);
-    //   });
-    // }
-
     const mapConditional = (queryParam) => {
       const { $in, $nin } = queryParam;
       if ($in) {
@@ -118,7 +72,6 @@ class Service {
         );
       } else {
         // AND
-        // @todo this is not mapped correctly
         condtionals.push(
           `AND(${Object.keys(queryParams)
             .filter(
@@ -129,13 +82,10 @@ class Service {
             )
             .map((queryParam) => {
               if (typeof queryParams[queryParam] === "object") {
-                // Special equality in filter. Remaps to equivalent $or
-
+                // Special equality in filter.
                 const { $in, $nin, $lt, $lte, $gt, $gte, $ne } = queryParams[
                   queryParam
                 ];
-
-                // return mapConditional(queryParams);
                 if ($in) {
                   const $ors = $in.map((param) => {
                     return { [queryParam]: `${param}` };
@@ -165,12 +115,6 @@ class Service {
             .join(",")})`
         );
       }
-
-      // @todo $gte
-      // if ($gte) {
-      //   console.log("GTE", $gte);
-      //   output = condtionals.push(``);
-      // }
 
       return condtionals.join(",");
     };
