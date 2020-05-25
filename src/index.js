@@ -276,8 +276,8 @@ class Service {
   }
 }
 
+export { Service };
+
 export default function (options) {
   return new Service(options);
 }
-
-export { Service };
