@@ -90,6 +90,11 @@ messages.create({
 });
 ```
 
+## To Do
+- Make query params work with Common API Standard
+- Update Readme
+- Make public
+
 ## License
 
 Copyright (c) 2017
