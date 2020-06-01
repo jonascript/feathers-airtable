@@ -12,6 +12,27 @@ class Service {
     this.app = app;
   }
 
+  /**
+   * Maps an airtable record object into a field
+   * @param {*} record
+   */
+  mapAirtableRecordToObject(record) {
+    return {
+      id: record.id,
+      ...record.fields,
+    };
+  }
+
+  /**
+   * Maps an airtable record object into a field
+   * @param {*} record
+   */
+  mapObjectToAirtableRecord(data) {
+    return {
+      fields: { ...data },
+    };
+  }
+
   async find(params) {
     const mapConditional = (queryParam) => {
       const { $in, $nin } = queryParam;
@@ -34,7 +55,6 @@ class Service {
       const validQueryParams = ["$or", "$not", "$in"];
       const condtionals = [];
       const { $or, $and, $gte, $not, $sort, $in } = queryParams;
-
       // Base Case
       if (typeof queryParams !== "object") {
         return queryParams;
@@ -128,22 +148,33 @@ class Service {
       const selectOptions = {};
 
       if (query) {
-        const { fields, $limit, $or, $sort, $select, $skip } = query;
+        const { $limit, $or, $sort, $select, $skip, $not } = query;
 
+        const fields = Object.keys(query).filter(
+          (queryParam) => queryParam[0] != "$"
+        );
+        // @todo Need to refactor this to handle query params better
+        // The modifiers should be mapped first
+        // Then the conditionals
+        // Some modifiers and conditionals contain $
+        // So I need to keep a list of which ones are valid
         if (fields) {
-          const filters = Object.keys(fields).map((key) => {
-            return `{${key}} = '${fields[key]}'`;
+          console.log(fields, query);
+          const filters = fields.map((key) => {
+            if (typeof query[key] === "object") {
+              return mapQuery(query[key]);
+            }
+            return `{${key}} = '${query[key]}'`;
           });
           if (filters.length > 1) {
             filterByFormula = `AND(${filters.join(",")})`;
           } else {
             filterByFormula = filters.join(",");
           }
-        } else {
-          filterByFormula = mapQuery(query);
-        }
 
-        selectOptions.filterByFormula = filterByFormula;
+          console.log(filterByFormula);
+          selectOptions.filterByFormula = filterByFormula;
+        }
 
         if ($sort) {
           selectOptions.sort = Object.keys($sort).map((key) => {
@@ -164,14 +195,13 @@ class Service {
           selectOptions.maxRecords += skip;
         }
       }
-
       const output = [];
       this.base(this.options.tableName)
         .select(selectOptions)
         .eachPage(
-          async function page(records, fetchNextPage) {
-            records.forEach(function (record) {
-              output.push(record);
+          async (records, fetchNextPage) => {
+            records.forEach((record) => {
+              output.push(this.mapAirtableRecordToObject(record));
             });
             fetchNextPage();
           },
@@ -202,10 +232,11 @@ class Service {
     if (Array.isArray(data)) {
       return Promise.all(data.map((current) => this.create(current, params)));
     }
+
     return new Promise((resolve, reject) => {
       this.base(this.options.tableName)
-        .create([data])
-        .then((result) => resolve(result[0]))
+        .create([this.mapObjectToAirtableRecord(data)])
+        .then((result) => resolve(this.mapAirtableRecordToObject(result[0])))
         .catch((err) => reject(err));
     });
   }
@@ -215,17 +246,17 @@ class Service {
 
     // For single resource
     if (id) {
-      reqData = [{ id, fields: data }];
+      reqData = [{ id, ...this.mapObjectToAirtableRecord(data) }];
     } else {
-      reqData = data.map((dataItem) => {
-        fields: dataItem;
-      });
+      reqData = data.map((dataItem) =>
+        this.mapObjectToAirtableRecord(dataItem)
+      );
     }
     return new Promise((resolve, reject) => {
       this.base(this.options.tableName)
         .update(reqData)
-        .then((result) => {
-          resolve(result);
+        .then((record) => {
+          resolve(this.mapAirtableRecordToObject(record));
         })
         .catch((err) => reject(err));
     });
@@ -245,8 +276,8 @@ class Service {
     return new Promise((resolve, reject) => {
       this.base(this.options.tableName)
         .update(reqData)
-        .then((result) => {
-          resolve(result);
+        .then((record) => {
+          resolve(this.mapAirtableRecordToObject(record));
         })
         .catch((err) => reject(err));
     });
