@@ -52,9 +52,9 @@ class Service {
     };
 
     const mapQuery = (queryParams) => {
-      const validQueryParams = ["$or", "$not", "$in"];
+      const validQueryParams = ["$or", "$in"];
       const condtionals = [];
-      const { $or, $and, $gte, $not, $sort, $in } = queryParams;
+      const { $or, $and, $gte, $sort, $in } = queryParams;
       // Base Case
       if (typeof queryParams !== "object") {
         return queryParams;
@@ -78,17 +78,6 @@ class Service {
               });
             })
             .join(",")})`
-        );
-      } else if ($not) {
-        condtionals.push(
-          `NOT(
-               ${Object.keys($not).map((key) => {
-                 if (typeof $not[key] === "object") {
-                   return mapQuery($not);
-                 } else {
-                   return `{${key}} = '${mapQuery($not[key])}'`;
-                 }
-               })})`
         );
       } else {
         // AND
@@ -141,6 +130,7 @@ class Service {
 
     return new Promise((resolve, reject) => {
       const { query } = params;
+
       let filterByFormula = "",
         maxRecords = "",
         skip;
@@ -148,38 +138,42 @@ class Service {
       const selectOptions = {};
 
       if (query) {
-        const { $limit, $or, $sort, $select, $skip, $not } = query;
+        const { $limit, $sort, $select, $skip } = query;
 
+        // For simple equality queries
         const fields = Object.keys(query).filter(
           (queryParam) => queryParam[0] != "$"
         );
+
         // @todo Need to refactor this to handle query params better
         // The modifiers should be mapped first
         // Then the conditionals
         // Some modifiers and conditionals contain $
         // So I need to keep a list of which ones are valid
-        if (fields) {
-          console.log(fields, query);
+        if (fields.length > 0) {
           const filters = fields.map((key) => {
             if (typeof query[key] === "object") {
-              return mapQuery(query[key]);
+              return mapQuery({ [key]: query[key] });
             }
             return `{${key}} = '${query[key]}'`;
           });
+
           if (filters.length > 1) {
             filterByFormula = `AND(${filters.join(",")})`;
           } else {
             filterByFormula = filters.join(",");
           }
-
-          console.log(filterByFormula);
           selectOptions.filterByFormula = filterByFormula;
+        } else {
+          selectOptions.filterByFormula = mapQuery(query);
         }
 
         if ($sort) {
-          selectOptions.sort = Object.keys($sort).map((key) => {
-            return { field: key, direction: $sort[key] > 0 ? "asc" : "desc" };
-          });
+          selectOptions.sort = Object.keys($sort)
+            .filter((key) => key !== "id")
+            .map((key) => {
+              return { field: key, direction: $sort[key] > 0 ? "asc" : "desc" };
+            });
         }
 
         if ($select) {
@@ -223,7 +217,7 @@ class Service {
     return new Promise((resolve, reject) => {
       this.base(this.options.tableName)
         .find(id)
-        .then((record) => resolve(record))
+        .then((record) => resolve(this.mapAirtableRecordToObject(record)))
         .catch((err) => reject(err));
     });
   }
@@ -252,11 +246,12 @@ class Service {
         this.mapObjectToAirtableRecord(dataItem)
       );
     }
+
     return new Promise((resolve, reject) => {
       this.base(this.options.tableName)
         .update(reqData)
-        .then((record) => {
-          resolve(this.mapAirtableRecordToObject(record));
+        .then((records) => {
+          resolve(records.map(this.mapAirtableRecordToObject));
         })
         .catch((err) => reject(err));
     });
@@ -268,9 +263,9 @@ class Service {
     // For single resource
     if (id) {
       data.id = id;
-      reqData = [data];
+      reqData = [this.mapObjectToAirtableRecord(data)];
     } else {
-      reqData = data;
+      reqData = this.mapObjectToAirtableRecord(data);
     }
 
     return new Promise((resolve, reject) => {

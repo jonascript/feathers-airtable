@@ -34,7 +34,6 @@ describe("Airtable service", () => {
     service = app.service("airtable");
 
     service.create(mockData).then((output) => {
-      console.log("mock", output);
       mockRecords.push(output);
       done();
     });
@@ -98,32 +97,40 @@ describe("Airtable service", () => {
     it("can handle complex nested special queries", (done) => {
       var params = {
         query: {
+          $sort: { Name: 1 },
           $or: [
             {
-              Name: ITEM_NAME + "_1",
+              Name: ITEM_NAME + "_NESTED_1",
             },
             {
-              Name: ITEM_NAME + "_2",
+              Name: ITEM_NAME + "_NESTED_2",
             },
           ],
         },
       };
 
       service
-        .create({
-          Name: ITEM_NAME + "_2",
-          Notes: `This is another note.`,
-          Count: i++,
-        })
+        .create([
+          {
+            Name: ITEM_NAME + "_NESTED_1",
+            Notes: `This is another note.`,
+            Count: i++,
+          },
+          {
+            Name: ITEM_NAME + "_NESTED_2",
+            Notes: `This is another note.`,
+            Count: i++,
+          },
+        ])
         .then((output) => {
-          mockRecords.push(output);
+          mockRecords.push(...output);
           service
             .find(params)
             .then((data) => {
               expect(Array.isArray(data)).toBe(true);
-              expect(data.length).toBe(1);
-              expect(data.length > 0).toBe(true);
-              expect(data[0].Name).toEqual(ITEM_NAME + "_2");
+              expect(data.length).toBe(2);
+              expect(data[0].Name).toEqual(ITEM_NAME + "_NESTED_1");
+              expect(data[1].Name).toEqual(ITEM_NAME + "_NESTED_2");
               done();
             })
             .catch(done);
@@ -134,7 +141,7 @@ describe("Airtable service", () => {
       beforeAll(async (done) => {
         mockRecords.push(
           await service.create({
-            Name: ITEM_NAME + "_1",
+            Name: ITEM_NAME + "_SPECIAL_FILTER_1",
             Notes: `This is a note.`,
             Count: i++,
           })
@@ -142,7 +149,7 @@ describe("Airtable service", () => {
 
         mockRecords.push(
           await service.create({
-            Name: ITEM_NAME + "_2",
+            Name: ITEM_NAME + "_SPECIAL_FILTER_2",
             Notes: `This is a note..`,
             Count: i++,
           })
@@ -150,28 +157,6 @@ describe("Airtable service", () => {
 
         done();
       });
-
-      // it("can $not", (done) => {
-      //   console.log("ITEM_NAME", ITEM_NAME);
-      //   var params = {
-      //     query: { $not: { Name: ITEM_NAME } },
-      //   };
-
-      //   service
-      //     .find(params)
-      //     .then((data) => {
-      //       console.log(data);
-      //       expect(Array.isArray(data)).toBe(true);
-      //       expect(data.length).toBe(3);
-
-      //       for (let x = 0; x < data.length; x++) {
-      //         expect(data[x].Name).not.toEqual(ITEM_NAME);
-      //       }
-
-      //       done();
-      //     })
-      //     .catch(done);
-      // });
 
       it("can $ne", (done) => {
         var params = {
@@ -181,9 +166,8 @@ describe("Airtable service", () => {
         service
           .find(params)
           .then((data) => {
-            console.log(data);
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(3);
+            expect(data.length).toBe(4);
             expect(data[0].Notes).toBeTruthy();
             done();
           })
@@ -199,7 +183,7 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(3);
+            expect(data.length).toBe(4);
             done();
           })
           .catch(done);
@@ -229,7 +213,7 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(4);
+            expect(data.length).toBe(5);
             expect(data[0].Notes).toBeTruthy();
             done();
           })
@@ -261,7 +245,7 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(3);
+            expect(data.length).toBe(4);
             expect(data[0].Count).toBeGreaterThan(1);
             done();
           })
@@ -277,8 +261,7 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(2);
-            expect(data[0].Count).toBeGreaterThan(1);
+            expect(data[0].Count).toBeGreaterThan(2);
             done();
           })
           .catch(done);
@@ -293,8 +276,10 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(1);
-            expect(data[0].Name).toEqual(ITEM_NAME);
+            expect(data.length).toBe(5);
+            expect(
+              [ITEM_NAME + "_1", ITEM_NAME + "_2"].includes(data[0].Name)
+            ).toEqual(false);
             expect(data[0].Notes).toBeTruthy();
             done();
           })
@@ -303,14 +288,21 @@ describe("Airtable service", () => {
 
       it("can $in", (done) => {
         var params = {
-          query: { Name: { $in: [ITEM_NAME + "_1", ITEM_NAME + "_2"] } },
+          query: {
+            Name: {
+              $in: [
+                ITEM_NAME + "_SPECIAL_FILTER_1",
+                ITEM_NAME + "_SPECIAL_FILTER_2",
+              ],
+            },
+          },
         };
 
         service
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(3);
+            expect(data.length).toBe(2);
             expect(data[0].Name).not.toEqual(ITEM_NAME);
             expect(data[0].Notes).toBeTruthy();
             done();
@@ -327,7 +319,7 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(4);
+            expect(data.length).toBe(5);
             expect(data[0].Name).not.toBeTruthy();
             expect(data[0].Notes).toBeTruthy();
             done();
@@ -348,7 +340,7 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(4);
+            expect(data.length).toBe(5);
             expect(data[0].Name).toEqual(ITEM_NAME);
             done();
           })
@@ -368,8 +360,8 @@ describe("Airtable service", () => {
           .find(params)
           .then((data) => {
             expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(4);
-            expect(data[0].Name).toEqual(ITEM_NAME + "_2");
+            expect(data.length).toBe(5);
+            expect(data[0].Name).toEqual(ITEM_NAME + "_SPECIAL_FILTER_2");
             done();
           })
           .catch(done);
@@ -513,9 +505,18 @@ describe("Airtable service", () => {
   });
 
   describe("patch", () => {
-    it("returns an instance that exists", (done) => {
+    let mockRecord;
+    beforeAll((done) => {
+      service.create(mockData).then((output) => {
+        mockRecord = output;
+        mockRecords.push(output);
+        done();
+      });
+    });
+
+    it("updates an existing instance", (done) => {
       const randomQty = Math.floor(Math.random() * 100);
-      service.patch(mockRecords[0].id, { Count: randomQty }).then((output) => {
+      service.patch(mockRecord.id, { Count: randomQty }).then((output) => {
         expect(output).toBeTruthy();
         // @todo mult vs single
         expect(output[0].Count).toBe(randomQty);
@@ -523,13 +524,12 @@ describe("Airtable service", () => {
       });
     });
 
-    // ✓ updates an existing instance
     // ✓ patches multiple instances
     // ✓ returns NotFound error for non-existing id
   });
 
   describe("get", () => {
-    it("returns an instance that exists", (done) => {
+    it("can get a record by id", (done) => {
       service.get(mockRecords[0].id).then((output) => {
         expect(output).toBeTruthy();
         expect(output.Name).toBe(ITEM_NAME);
