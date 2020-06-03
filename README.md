@@ -91,8 +91,8 @@ messages.create({
 ```
 
 ## To Do
-- Make query params work with Common API Standard
-- Update Readme
+- Refactor query parse
+- Update Docs
 - Make public
 
 ## License
