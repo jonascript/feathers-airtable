@@ -166,6 +166,7 @@ describe("Airtable service", () => {
         service
           .find(params)
           .then((data) => {
+            console.log(data);
             expect(Array.isArray(data)).toBe(true);
             expect(data.length).toBe(4);
             expect(data[0].Notes).toBeTruthy();
@@ -362,6 +363,21 @@ describe("Airtable service", () => {
             expect(Array.isArray(data)).toBe(true);
             expect(data.length).toBe(5);
             expect(data[0].Name).toEqual(ITEM_NAME + "_SPECIAL_FILTER_2");
+            done();
+          })
+          .catch(done);
+      });
+
+      it("can handle invalid query gracefully", (done) => {
+        var params = {
+          query: { Name: { $foo: [ITEM_NAME + "_1", ITEM_NAME + "_2"] } },
+        };
+
+        service
+          .find(params)
+          .then((data) => {
+            expect(Array.isArray(data)).toBe(true);
+            expect(data.length).toBe(1);
             done();
           })
           .catch(done);
