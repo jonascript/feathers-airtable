@@ -166,7 +166,6 @@ describe("Airtable service", () => {
         service
           .find(params)
           .then((data) => {
-            console.log(data);
             expect(Array.isArray(data)).toBe(true);
             expect(data.length).toBe(4);
             expect(data[0].Notes).toBeTruthy();
@@ -376,11 +375,12 @@ describe("Airtable service", () => {
         service
           .find(params)
           .then((data) => {
-            expect(Array.isArray(data)).toBe(true);
-            expect(data.length).toBe(1);
             done();
           })
-          .catch(done);
+          .catch((err) => {
+            expect(err).toBeTruthy();
+            done();
+          });
       });
 
       it("can $limit", (done) => {

@@ -73,12 +73,10 @@ class Service {
       );
     } else {
       // AND
-
       // @todo fix unecessary AND breaking query
       condtionals.push(
-        `AND(${Object.keys(queryParams)
+        `${Object.keys(queryParams)
           .filter((field) => {
-            console.log("THE OPERATOR", field);
             return !comparisonOperators.includes(field);
           })
           .map((field) => {
@@ -113,11 +111,14 @@ class Service {
             }
             return `{${field}} = ${this.mapQuery(queryParams[field])}`;
           })
-          .join(",")})`
+          .join(",")}`
       );
     }
 
-    return condtionals.join(",");
+    if (condtionals.length > 1) {
+      return condtionals.join(",");
+    }
+    return condtionals.join("");
   }
 
   async find(params) {
@@ -130,6 +131,7 @@ class Service {
       "$gte",
       "$nin",
       "$in",
+      "$or",
     ];
 
     return new Promise((resolve, reject) => {
@@ -153,15 +155,6 @@ class Service {
           (queryParam) => queryParam.charAt(0) !== "$"
         );
 
-        // if (fields.length) {
-        //   this.mapQuery();
-        // }
-
-        // @todo Need to refactor this to handle query params better
-        // The modifiers should be mapped first
-        // Then the conditionals
-        // Some modifiers and conditionals contain $
-        // So I need to keep a list of which ones are valid
         if (operators.length > 0) {
           const filters = operators.map((key) => {
             if (typeof query[key] === "object") {
@@ -170,8 +163,6 @@ class Service {
             return `{${key}} = '${query[key]}'`;
           });
 
-          console.log(query, filters, operators);
-
           if (filters.length > 1) {
             filterByFormula = `AND(${filters.join(",")})`;
           } else {
@@ -179,24 +170,21 @@ class Service {
           }
           selectOptions.filterByFormula = filterByFormula;
         } else if (equalityConditionals.length > 0) {
-          console.log(equalityConditionals);
           const filters = equalityConditionals.map((key) => {
             if (typeof query[key] === "object") {
-              console.log("OBJECT", key, query[key]);
               return this.mapQuery({ [key]: query[key] });
             }
             return `{${key}} = '${query[key]}'`;
           });
 
-          console.log("PARAMS", query, filters, operators);
           if (filters.length > 1) {
             filterByFormula = `AND(${filters.join(",")})`;
           } else {
             filterByFormula = filters.join("");
           }
-        }
 
-        console.log("FILTER", filterByFormula);
+          selectOptions.filterByFormula = filterByFormula;
+        }
 
         if ($sort) {
           selectOptions.sort = Object.keys($sort)
