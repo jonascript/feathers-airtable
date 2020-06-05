@@ -14,9 +14,7 @@
     "url": "git://github.com/jonascript/feathers-airtable.git"
   },
   "author": {
-    "name": "Feathers contributors",
-    "email": "hello@feathersjs.com",
-    "url": "https://feathersjs.com"
+    "name": "Jonathan Crockett"
   },
   "contributors": [],
   "bugs": {
