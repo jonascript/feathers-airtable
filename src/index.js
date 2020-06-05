@@ -15,6 +15,7 @@ class Service {
   /**
    * Maps an airtable record object into a field
    * @param {*} record
+   * @returns {Object} { id: [airtable _id], "Field A", "Field B" }
    */
   mapAirtableRecordToObject(record) {
     return {
@@ -26,6 +27,7 @@ class Service {
   /**
    * Maps an airtable record object into a field
    * @param {*} record
+   * @returns {Object} {fields: { "Field A": val, "Field B": val }}
    */
   mapObjectToAirtableRecord(data) {
     return {
