@@ -7,6 +7,7 @@ dotenv.config();
 
 const TEST_TABLE_NAME = process.env.TEST_TABLE_NAME;
 const TEST_BASE_ID = process.env.TEST_BASE_ID;
+const TEST_API_KEY = process.env.TEST_API_KEY;
 const ITEM_NAME = "Unit Test Item";
 
 jest.setTimeout(5000);
@@ -24,7 +25,7 @@ describe("Airtable service", () => {
 
   beforeAll((done) => {
     const options = {
-      apiKey: "key0XYHCXug7QWUL9",
+      apiKey: TEST_API_KEY,
       tableName: TEST_TABLE_NAME,
       baseId: TEST_BASE_ID,
     };
